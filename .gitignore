@@ -27,3 +27,6 @@ npm-debug.log*
 # Analysis Files
 classify.ts
 api.ts
+
+.vercel
+.env*.local

@@ -1,0 +1,10 @@
+{
+  "name": "reelmind-api",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.95.1",
+    "@supabase/supabase-js": "^2.105.4",
+    "openai": "^4.104.0"
+  }
+}
