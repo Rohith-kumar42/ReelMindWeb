@@ -23,3 +23,7 @@ npm-debug.log*
 # IDE
 .vscode/
 .idea/
+
+# Analysis Files
+classify.ts
+api.ts

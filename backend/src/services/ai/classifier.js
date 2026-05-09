@@ -12,11 +12,11 @@ function heuristicClassify(context = '') {
   ];
 
   const [contentType] = matches.find(([, words]) => words.some((word) => text.includes(word))) || ['other'];
-  const category = text.includes('ai') || text.includes('llm') ? 'AI'
+  const category = text.includes('ai') || text.includes('llm') ? 'AI Models'
     : text.includes('design') ? 'Design'
     : text.includes('marketing') ? 'Marketing'
-    : text.includes('code') || text.includes('developer') ? 'Development'
-    : 'Resources';
+    : text.includes('code') || text.includes('developer') ? 'Developer Tools'
+    : 'AI Tools';
 
   const tags = Array.from(new Set([
     contentType !== 'other' ? contentType : null,
@@ -45,32 +45,77 @@ function safeJson(text) {
 }
 
 async function classifyContent(context) {
-  if (!process.env.ANTHROPIC_API_KEY) return heuristicClassify(context);
+  if (!process.env.OPENAI_API_KEY || !process.env.OPENAI_API_KEY.startsWith('nvapi-')) {
+    return heuristicClassify(context);
+  }
 
-  const Anthropic = require('@anthropic-ai/sdk');
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-  const response = await client.messages.create({
-    model: 'claude-haiku-4-5',
-    max_tokens: 500,
-    temperature: 0,
-    messages: [{
-      role: 'user',
-      content: `Classify this content. Return JSON only:
-{ category, subcategory, content_type, tags: string[], confidence: 0-1 }
-content_type must be one of: tool, course, repo, resource, framework, extension, other
-Content: ${context}`,
-    }],
-  });
+  const prompt = `You are an AI knowledge classifier for a personal learning library called ReelMind. Users save Instagram Reels about AI tools, coding resources, courses, and tech.
 
-  const text = response.content.map((part) => part.text || '').join('');
-  const result = safeJson(text);
-  return {
-    category: String(result.category || 'Resources'),
-    subcategory: String(result.subcategory || 'General'),
-    content_type: CONTENT_TYPES.includes(result.content_type) ? result.content_type : 'other',
-    tags: Array.isArray(result.tags) ? result.tags.map(String).slice(0, 10) : [],
-    confidence: Math.max(0, Math.min(1, Number(result.confidence) || 0.5)),
-  };
+Classify this saved content. Return ONLY JSON — no markdown, no explanation, no code fences.
+
+CATEGORIES (use the exact name from this list):
+- Claude Code & Skills
+- AI Tools
+- Learning & Courses
+- Prompt Engineering
+- MCP & Agents
+- Developer Tools
+- Freelancing
+- AI Models
+- Security
+
+INPUT:
+${context}
+
+Return ONLY this JSON:
+{
+  "title": "Clean 5-8 word title describing the tool or resource",
+  "summary": "One sentence describing what this is and why it's valuable",
+  "category": "Exact category name from the list above",
+  "subcategory": null,
+  "tags": ["tag1", "tag2", "tag3", "tag4", "tag5"],
+  "content_type": "tool",
+  "confidence": 0.88
+}
+
+content_type must be one of: tool, course, repo, resource, framework, extension, other`;
+
+  try {
+    const response = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: 'meta/llama-3.1-8b-instruct',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0,
+        max_tokens: 500,
+      }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      console.error('Nvidia API Error:', data);
+      return heuristicClassify(context);
+    }
+
+    const text = data.choices[0]?.message?.content || '';
+    const result = safeJson(text);
+    return {
+      title: result.title,
+      summary: result.summary,
+      category: String(result.category || 'AI Tools'),
+      subcategory: String(result.subcategory || 'General'),
+      content_type: CONTENT_TYPES.includes(result.content_type) ? result.content_type : 'other',
+      tags: Array.isArray(result.tags) ? result.tags.map(String).slice(0, 10) : [],
+      confidence: Math.max(0, Math.min(1, Number(result.confidence) || 0.8)),
+    };
+  } catch (err) {
+    console.error('Classification error:', err);
+    return heuristicClassify(context);
+  }
 }
 
 module.exports = {

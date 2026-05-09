@@ -70,6 +70,7 @@ async function createContent(payload, userId) {
   const { data, error } = await client
     .from('content_items')
     .insert({
+      id: `item-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       user_id: userId,
       category_id: payload.category.id,
       reel_url: payload.reelUrl,
@@ -77,10 +78,9 @@ async function createContent(payload, userId) {
       title: payload.title,
       summary: payload.summary,
       notes: payload.notes || null,
-      thumbnail_url: payload.thumbnail_url || null,
       content_type: payload.content_type,
       tags: payload.tags,
-      confidence: payload.confidence,
+      ai_confidence: payload.confidence,
       embedding: payload.embedding,
       is_favorite: false,
       view_count: 0,
@@ -107,8 +107,8 @@ async function runPipeline({ reelUrl, linkUrl, notes = '', title: titleOverride,
   if (duplicate.isDuplicate) throw new DuplicateContentError(duplicate.existingItem);
 
   const classification = await classifyContent(context);
-  const title = titleOverride || reelData?.title || linkData?.title || 'Untitled save';
-  const summary = summaryOverride || reelData?.description || linkData?.description || context.slice(0, 220) || 'No summary available yet.';
+  const title = titleOverride || classification.title || reelData?.title || linkData?.title || 'Untitled save';
+  const summary = summaryOverride || classification.summary || reelData?.description || linkData?.description || context.slice(0, 220) || 'No summary available yet.';
   const thumbnail_url = reelData?.thumbnail_url || linkData?.thumbnail_url || null;
 
   const preview = {

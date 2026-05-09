@@ -9,17 +9,33 @@ function fallbackEmbedding(text = '') {
   return vector;
 }
 
-async function generateEmbedding(context) {
+async function generateEmbedding(context, inputType = 'passage') {
   if (!process.env.OPENAI_API_KEY) return fallbackEmbedding(context);
 
-  const OpenAI = require('openai');
-  const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-  const response = await client.embeddings.create({
-    model: 'text-embedding-3-small',
-    input: context.slice(0, 24000),
-  });
+  try {
+    const response = await fetch('https://integrate.api.nvidia.com/v1/embeddings', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: 'nvidia/nv-embedqa-e5-v5',
+        input: [context.slice(0, 24000)],
+      }),
+    });
 
-  return response.data[0].embedding;
+    const data = await response.json();
+    if (!response.ok) {
+      console.warn(`Nvidia Embeddings API Error: ${JSON.stringify(data)}`);
+      return fallbackEmbedding(context);
+    }
+
+    return data.data[0].embedding;
+  } catch (err) {
+    console.warn(`Nvidia Embeddings Failed: ${err.message}`);
+    return fallbackEmbedding(context);
+  }
 }
 
 module.exports = {

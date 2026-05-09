@@ -23,7 +23,7 @@ router.post('/', asyncHandler(async (req, res) => {
     return res.json({ items });
   }
 
-  const embedding = await generateEmbedding(query);
+  const embedding = await generateEmbedding(query, 'query');
   const { data, error } = await supabase.rpc('match_content_items', {
     query_embedding: embedding,
     match_user_id: req.user.id,
