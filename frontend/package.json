@@ -1,0 +1,17 @@
+{
+  "name": "reelmind-web-frontend",
+  "version": "1.0.0",
+  "description": "ReelMind Web — Vite frontend + Vercel Serverless API",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.60.0",
+    "@supabase/supabase-js": "^2.75.0",
+    "openai": "^6.7.0",
+    "vite": "^7.1.9"
+  }
+}
