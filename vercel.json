@@ -9,24 +9,28 @@
   },
   "rewrites": [
     {
-      "source": "/api/content/:id",
+      "source": "/api/content/:path*",
       "destination": "/api/content"
     },
     {
-      "source": "/api/recommend/:id",
+      "source": "/api/recommend/:path*",
       "destination": "/api/recommend"
     },
     {
-      "source": "/api/categories/:id",
+      "source": "/api/categories/:path*",
       "destination": "/api/categories"
     },
     {
-      "source": "/api/tags/:id",
+      "source": "/api/tags/:path*",
       "destination": "/api/tags"
     },
     {
-      "source": "/api/search/:id",
+      "source": "/api/search/:path*",
       "destination": "/api/search"
+    },
+    {
+      "source": "/api/pipeline/:path*",
+      "destination": "/api/pipeline"
     },
     {
       "source": "/api/(.*)",
