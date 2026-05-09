@@ -15,6 +15,7 @@ create extension if not exists "vector";
 -- 2. TABLES
 create table public.categories (
   id         text primary key,
+  user_id    uuid not null default '00000000-0000-0000-0000-000000000001',
   name       text not null,
   slug       text not null unique,
   color      text not null default '#8B5CF6',
@@ -44,6 +45,7 @@ create table public.content_items (
 );
 
 -- 3. INDEXES
+create index categories_user_id_idx on public.categories(user_id);
 create index content_items_category_id_idx on public.content_items(category_id);
 create index content_items_user_id_idx     on public.content_items(user_id);
 create index content_items_created_at_idx  on public.content_items(created_at desc);
