@@ -9,6 +9,26 @@
   },
   "rewrites": [
     {
+      "source": "/api/content/:id",
+      "destination": "/api/content"
+    },
+    {
+      "source": "/api/recommend/:id",
+      "destination": "/api/recommend"
+    },
+    {
+      "source": "/api/categories/:id",
+      "destination": "/api/categories"
+    },
+    {
+      "source": "/api/tags/:id",
+      "destination": "/api/tags"
+    },
+    {
+      "source": "/api/search/:id",
+      "destination": "/api/search"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/api/$1"
     },
