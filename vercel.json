@@ -1,16 +1,23 @@
 {
   "version": 2,
-  "rootDirectory": "frontend",
-  "outputDirectory": "dist",
+  "buildCommand": "cd frontend && npm install && npm run build",
+  "outputDirectory": "frontend/dist",
+  "installCommand": "cd frontend && npm install",
   "framework": "vite",
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1" },
-    { "source": "/((?!api/).*)", "destination": "/index.html" }
+    {
+      "source": "/api/(.*)",
+      "destination": "/frontend/api/$1"
+    },
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
+    }
   ],
   "functions": {
-    "api/**/*.js": {
+    "frontend/api/**/*.js": {
       "runtime": "nodejs20.x",
-      "maxDuration": 30
+      "maxDuration": 10
     }
   }
 }
