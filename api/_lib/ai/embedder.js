@@ -10,30 +10,47 @@ function fallbackEmbedding(text = '') {
 }
 
 export async function generateEmbedding(context) {
-  if (!process.env.OPENAI_API_KEY) return fallbackEmbedding(context)
+  const isNvidia = process.env.OPENAI_API_KEY?.startsWith('nvapi-') || process.env.NVIDIA_API_KEY
+  const isOpenAI = process.env.OPENAI_API_KEY?.startsWith('sk-')
+
+  if (!isNvidia && !isOpenAI) return fallbackEmbedding(context)
 
   try {
-    const response = await fetch('https://integrate.api.nvidia.com/v1/embeddings', {
-      method: 'POST',
-      headers: {
+    let url, headers, body
+
+    if (isOpenAI) {
+      url = 'https://api.openai.com/v1/embeddings'
+      headers = {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify({
+      }
+      body = JSON.stringify({
+        model: 'text-embedding-3-small',
+        input: context.slice(0, 8000), // OpenAI limit is higher but 8k is safe
+      })
+    } else {
+      url = 'https://integrate.api.nvidia.com/v1/embeddings'
+      headers = {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${process.env.NVIDIA_API_KEY || process.env.OPENAI_API_KEY}`,
+      }
+      body = JSON.stringify({
         model: 'nvidia/nv-embedqa-e5-v5',
         input: [context.slice(0, 24000)],
-      }),
-    })
+      })
+    }
 
+    const response = await fetch(url, { method: 'POST', headers, body })
     const data = await response.json()
+
     if (!response.ok) {
-      console.warn(`Nvidia Embeddings API Error: ${JSON.stringify(data)}`)
+      console.warn(`AI Embeddings API Error: ${JSON.stringify(data)}`)
       return fallbackEmbedding(context)
     }
 
-    return data.data[0].embedding
+    return isOpenAI ? data.data[0].embedding : data.data[0].embedding
   } catch (err) {
-    console.warn(`Nvidia Embeddings Failed: ${err.message}`)
+    console.warn(`AI Embeddings Failed: ${err.message}`)
     return fallbackEmbedding(context)
   }
 }

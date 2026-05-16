@@ -92,14 +92,24 @@ export async function runPipeline({ reelUrl, linkUrl, notes = '', title: titleOv
     throw err
   }
 
-  const reelData = await scrapeInstagram(reelUrl)
-  const linkData = linkUrl ? await scrapeLink(linkUrl) : null
+  // STEP 1 — scrape both URLs in parallel
+  const [reelData, linkData] = await Promise.all([
+    scrapeInstagram(reelUrl),
+    linkUrl ? scrapeLink(linkUrl) : Promise.resolve(null),
+  ])
+
   const context = buildContext(reelData, linkData, notes)
-  const embedding = await generateEmbedding(context)
+
+  // STEP 2 — embed + classify in parallel (both need context, neither needs the other)
+  const [embedding, classification] = await Promise.all([
+    generateEmbedding(context),
+    classifyContent(context),
+  ])
+
+  // STEP 3 — duplicate check (needs embedding)
   const duplicate = await checkDuplicate(embedding, userId)
   if (duplicate.isDuplicate) throw new DuplicateContentError(duplicate.existingItem)
 
-  const classification = await classifyContent(context)
   const title = titleOverride || classification.title || reelData?.title || linkData?.title || 'Untitled save'
   const summary = summaryOverride || classification.summary || reelData?.description || linkData?.description || context.slice(0, 220) || 'No summary available yet.'
   const thumbnail_url = reelData?.thumbnail_url || linkData?.thumbnail_url || null
@@ -122,6 +132,7 @@ export async function runPipeline({ reelUrl, linkUrl, notes = '', title: titleOv
 
   if (!save) return { preview, duplicate: false }
 
+  // STEP 4 — category + content creation (category must exist before content)
   const category = await getOrCreateCategory(classification.category, userId)
   const item = await createContent({ ...preview, category, embedding }, userId)
 

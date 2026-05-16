@@ -43,7 +43,10 @@ function safeJson(text) {
 }
 
 export async function classifyContent(context) {
-  if (!process.env.OPENAI_API_KEY || !process.env.OPENAI_API_KEY.startsWith('nvapi-')) {
+  const isNvidia = process.env.OPENAI_API_KEY?.startsWith('nvapi-') || process.env.NVIDIA_API_KEY
+  const isOpenAI = process.env.OPENAI_API_KEY?.startsWith('sk-')
+
+  if (!isNvidia && !isOpenAI) {
     return heuristicClassify(context)
   }
 
@@ -79,23 +82,39 @@ Return ONLY this JSON:
 content_type must be one of: tool, course, repo, resource, framework, extension, other`
 
   try {
-    const response = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
+    let url, headers, body
+
+    if (isOpenAI) {
+      url = 'https://api.openai.com/v1/chat/completions'
+      headers = {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify({
+      }
+      body = JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'user', content: prompt }],
+        response_format: { type: 'json_object' },
+        temperature: 0,
+      })
+    } else {
+      url = 'https://integrate.api.nvidia.com/v1/chat/completions'
+      headers = {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${process.env.NVIDIA_API_KEY || process.env.OPENAI_API_KEY}`,
+      }
+      body = JSON.stringify({
         model: 'meta/llama-3.1-8b-instruct',
         messages: [{ role: 'user', content: prompt }],
         temperature: 0,
         max_tokens: 500,
-      }),
-    })
+      })
+    }
 
+    const response = await fetch(url, { method: 'POST', headers, body })
     const data = await response.json()
+
     if (!response.ok) {
-      console.error('Nvidia API Error:', data)
+      console.error('AI API Error:', data)
       return heuristicClassify(context)
     }
 

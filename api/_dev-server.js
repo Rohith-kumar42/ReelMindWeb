@@ -1,14 +1,15 @@
-// Local dev server — simulates Vercel serverless functions on port 3001
-// Run with: node frontend/api/_dev-server.js
-// Then run: npm run dev (in frontend/) in a separate terminal
-// Both must be running for /api/* calls to work locally.
+import { config } from 'dotenv'
+import { resolve, dirname } from 'path'
+import { fileURLToPath } from 'url'
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
+config({ path: resolve(__dirname, '../backend/.env') })
 
 import express from 'express'
 import { readdir } from 'fs/promises'
 import path from 'path'
-import { fileURLToPath } from 'url'
+import { pathToFileURL } from 'url'
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const app = express()
 app.use(express.json())
@@ -17,13 +18,12 @@ const apiDir = __dirname
 const files = await readdir(apiDir)
 
 for (const file of files) {
-  // Skip private _lib helpers, this file itself, and non-JS files
   if (file.startsWith('_') || !file.endsWith('.js')) continue
 
   const route = '/' + file.replace('.js', '')
-  const mod = await import(path.join(apiDir, file))
+  const mod = await import(pathToFileURL(path.join(apiDir, file)).href)
   app.all(route, mod.default)
-  app.all(`${route}/*`, mod.default)   // handles sub-paths like /content/:id
+  app.all(`${route}/*path`, mod.default)
   console.log(`  Registered: /api${route}`)
 }
 
